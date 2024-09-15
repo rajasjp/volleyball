@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Volleyball Lineup Creator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f8ff;
+        }
+
+        h2, h3 {
+            color: #2e8b57;
+        }
+
+        #player-form {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #e6f7ff;
+            border-radius: 10px;
+        }
+
+        #player-form label {
+            display: inline-block;
+            width: 200px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        #player-form input {
+            padding: 5px;
+            width: 200px;
+            margin-bottom: 10px;
+        }
+
+        #add-player-button {
+            padding: 10px 20px;
+            background-color: #2e8b57;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        #add-player-button:hover {
+            background-color: #276747;
+        }
+
+        #player-list {
+            margin-bottom: 30px;
+        }
+
+        #players-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #players-table th, #players-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        #players-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        #players-table th {
+            background-color: #2e8b57;
+            color: white;
+        }
+
+        /* Grayed out row for assigned players */
+        .assigned {
+            background-color: #d3d3d3;
+            color: #808080;
+        }
+
+        #lineup-panel {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        #court {
+            display: grid;
+            grid-template-columns: repeat(3, 120px);
+            grid-template-rows: repeat(2, 120px);
+            gap: 10px;
+            padding: 20px;
+            background-color: #fffafa;
+            border-radius: 10px;
+            border: 2px solid #2e8b57;
+        }
+
+        .court-position, .bench-slot {
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #aaa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e0ffff;
+            border-radius: 10px;
+            position: relative;
+            outline: none; /* Remove default focus outline */
+        }
+
+        .court-position:hover, .bench-slot:hover {
+            background-color: #b0e0e6;
+        }
+
+        .court-position:focus, .bench-slot:focus {
+            border-color: #2e8b57;
+        }
+
+        #bench {
+            display: grid;
+            grid-template-columns: repeat(6, 80px);
+            grid-template-rows: 120px;
+            gap: 10px;
+            padding: 20px;
+            background-color: #fffafa;
+            border-radius: 10px;
+            border: 2px solid #2e8b57;
+        }
+
+        .bench-slot {
+            width: 80px;
+            height: 120px;
+        }
+
+        .player-jersey {
+            font-size: 32px;
+            font-weight: bold;
+            color: #2e8b57;
+            cursor: move;
+        }
+
+        /* Tooltip container */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Tooltip text */
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 180px;
+            background-color: #2e8b57;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position above */
+            left: 50%;
+            margin-left: -90px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        /* Tooltip arrow */
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%; /* At the bottom of tooltip */
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2e8b57 transparent transparent transparent;
+        }
+
+        /* Show the tooltip text when you mouse over the tooltip container */
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Draggable row styling */
+        tr[draggable="true"] {
+            cursor: move;
+        }
+    </style>
+</head>
+<body>
+    <!-- Form for adding players -->
+    <div id="player-form">
+        <h2>Add Player</h2>
+        <form id="add-player-form">
+            <label for="player-name">Name of the Player:</label>
+            <input type="text" id="player-name" required><br>
+
+            <label for="jersey-number">Jersey Number:</label>
+            <input type="number" id="jersey-number" required><br>
+
+            <label for="service-skill">Service Skill Level (1-5):</label>
+            <input type="number" id="service-skill" min="1" max="5" required><br>
+
+            <label for="setter-skill">Setter Skill Level (1-5):</label>
+            <input type="number" id="setter-skill" min="1" max="5" required><br>
+
+            <label for="hitter-skill">Hitter Skill Level (1-5):</label>
+            <input type="number" id="hitter-skill" min="1" max="5" required><br>
+
+            <label for="passer-skill">Passer Skill Level (1-5):</label>
+            <input type="number" id="passer-skill" min="1" max="5" required><br>
+
+            <button type="button" id="add-player-button">Add Player</button>
+        </form>
+    </div>
+
+    <!-- Table of players -->
+    <div id="player-list">
+        <h2>Player List</h2>
+        <table id="players-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Jersey Number</th>
+                    <th>Service Skill</th>
+                    <th>Setter Skill</th>
+                    <th>Hitter Skill</th>
+                    <th>Passer Skill</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Players will be added here dynamically -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Court and bench area -->
+    <div id="lineup-panel">
+        <div>
+            <h2>Court</h2>
+            <div id="court">
+                <!-- Court positions -->
+                <div class="court-position" id="court-pos-1" tabindex="0"></div>
+                <div class="court-position" id="court-pos-2" tabindex="0"></div>
+                <div class="court-position" id="court-pos-3" tabindex="0"></div>
+                <div class="court-position" id="court-pos-4" tabindex="0"></div>
+                <div class="court-position" id="court-pos-5" tabindex="0"></div>
+                <div class="court-position" id="court-pos-6" tabindex="0"></div>
+            </div>
+        </div>
+        <div>
+            <h2>Bench</h2>
+            <div id="bench">
+                <div class="bench-slot" id="bench-slot-1" tabindex="0"></div>
+                <div class="bench-slot" id="bench-slot-2" tabindex="0"></div>
+                <div class="bench-slot" id="bench-slot-3" tabindex="0"></div>
+                <div class="bench-slot" id="bench-slot-4" tabindex="0"></div>
+                <div class="bench-slot" id="bench-slot-5" tabindex="0"></div>
+                <div class="bench-slot" id="bench-slot-6" tabindex="0"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript code -->
+    <script>
+        // Keep track of assigned players
+        var assignedPlayers = {};
+
+        document.getElementById('add-player-button').addEventListener('click', addPlayer);
+
+        function addPlayer() {
+            // Get the values from the form inputs
+            var name = document.getElementById('player-name').value;
+            var jerseyNumber = document.getElementById('jersey-number').value;
+            var serviceSkill = document.getElementById('service-skill').value;
+            var setterSkill = document.getElementById('setter-skill').value;
+            var hitterSkill = document.getElementById('hitter-skill').value;
+            var passerSkill = document.getElementById('passer-skill').value;
+
+            // Validate inputs (simple validation)
+            if (name && jerseyNumber && serviceSkill && setterSkill && hitterSkill && passerSkill) {
+                // Add the player to the table
+                var table = document.getElementById('players-table').getElementsByTagName('tbody')[0];
+                var newRow = table.insertRow();
+
+                // Set the data attributes for the row for dragging
+                newRow.setAttribute('draggable', 'true');
+                newRow.setAttribute('data-name', name);
+                newRow.setAttribute('data-jersey-number', jerseyNumber);
+                newRow.setAttribute('data-service-skill', serviceSkill);
+                newRow.setAttribute('data-setter-skill', setterSkill);
+                newRow.setAttribute('data-hitter-skill', hitterSkill);
+                newRow.setAttribute('data-passer-skill', passerSkill);
+                newRow.setAttribute('data-player-id', Date.now()); // Unique ID for the player
+
+                // Add event listeners for drag events
+                newRow.addEventListener('dragstart', dragStart);
+
+                // Add cells to the row
+                var cell1 = newRow.insertCell(0);
+                cell1.innerHTML = name;
+
+                var cell2 = newRow.insertCell(1);
+                cell2.innerHTML = jerseyNumber;
+
+                var cell3 = newRow.insertCell(2);
+                cell3.innerHTML = serviceSkill;
+
+                var cell4 = newRow.insertCell(3);
+                cell4.innerHTML = setterSkill;
+
+                var cell5 = newRow.insertCell(4);
+                cell5.innerHTML = hitterSkill;
+
+                var cell6 = newRow.insertCell(5);
+                cell6.innerHTML = passerSkill;
+
+                // Clear the form
+                document.getElementById('add-player-form').reset();
+            } else {
+                alert('Please fill in all fields.');
+            }
+        }
+
+        function dragStart(event) {
+            var target = event.target;
+            var data = {
+                name: target.getAttribute('data-name'),
+                jerseyNumber: target.getAttribute('data-jersey-number'),
+                serviceSkill: target.getAttribute('data-service-skill'),
+                setterSkill: target.getAttribute('data-setter-skill'),
+                hitterSkill: target.getAttribute('data-hitter-skill'),
+                passerSkill: target.getAttribute('data-passer-skill'),
+                playerId: target.getAttribute('data-player-id')
+            };
+            event.dataTransfer.setData('text/plain', JSON.stringify(data));
+            event.dataTransfer.effectAllowed = 'move';
+        }
+
+        function cellDragStart(event) {
+            // Allow dragging of players from cells
+            var playerDiv = event.target;
+            if (playerDiv.classList.contains('player-jersey')) {
+                var parentCell = playerDiv.parentElement;
+                var data = {
+                    name: playerDiv.getAttribute('data-name'),
+                    jerseyNumber: playerDiv.getAttribute('data-jersey-number'),
+                    serviceSkill: playerDiv.getAttribute('data-service-skill'),
+                    setterSkill: playerDiv.getAttribute('data-setter-skill'),
+                    hitterSkill: playerDiv.getAttribute('data-hitter-skill'),
+                    passerSkill: playerDiv.getAttribute('data-passer-skill'),
+                    playerId: playerDiv.getAttribute('data-player-id')
+                };
+                event.dataTransfer.setData('text/plain', JSON.stringify(data));
+                // Mark the source cell
+                event.dataTransfer.setData('source-cell-id', parentCell.id);
+                event.dataTransfer.effectAllowed = 'move';
+            }
+        }
+
+        // Set up the court and bench positions to accept drops
+        var courtPositions = document.getElementsByClassName('court-position');
+        for (var i = 0; i < courtPositions.length; i++) {
+            courtPositions[i].addEventListener('dragover', dragOver);
+            courtPositions[i].addEventListener('drop', drop);
+            courtPositions[i].addEventListener('keydown', cellKeyDown);
+            courtPositions[i].addEventListener('dragstart', cellDragStart);
+            courtPositions[i].setAttribute('draggable', 'true');
+        }
+
+        var benchSlots = document.getElementsByClassName('bench-slot');
+        for (var i = 0; i < benchSlots.length; i++) {
+            benchSlots[i].addEventListener('dragover', dragOver);
+            benchSlots[i].addEventListener('drop', drop);
+            benchSlots[i].addEventListener('keydown', cellKeyDown);
+            benchSlots[i].addEventListener('dragstart', cellDragStart);
+            benchSlots[i].setAttribute('draggable', 'true');
+        }
+
+        function dragOver(event) {
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function drop(event) {
+            event.preventDefault();
+            var data = event.dataTransfer.getData('text/plain');
+            var playerData = JSON.parse(data);
+            var targetCell = event.target;
+
+            // If dropped on a player div inside a cell, adjust the target cell
+            if (targetCell.classList.contains('player-jersey')) {
+                targetCell = targetCell.parentElement;
+            }
+
+            // Check if the player is already assigned
+            if (assignedPlayers[playerData.playerId] && assignedPlayers[playerData.playerId] !== event.dataTransfer.getData('source-cell-id')) {
+                // Player is assigned elsewhere, move them
+                var sourceCellId = assignedPlayers[playerData.playerId];
+                var sourceCell = document.getElementById(sourceCellId);
+                if (sourceCell && sourceCell !== targetCell) {
+                    sourceCell.innerHTML = '';
+                    delete assignedPlayers[playerData.playerId];
+                }
+            }
+
+            // Remove any existing player in the target cell
+            if (targetCell.innerHTML !== '') {
+                // Remove assigned status from the player being replaced
+                var existingPlayerDiv = targetCell.querySelector('.player-jersey');
+                var existingPlayerId = existingPlayerDiv.getAttribute('data-player-id');
+                delete assignedPlayers[existingPlayerId];
+                updatePlayerRowStatus(existingPlayerId, false);
+            }
+
+            // Create a new div to display the jersey number
+            var playerDiv = document.createElement('div');
+            playerDiv.className = 'player-jersey tooltip';
+            playerDiv.innerHTML = playerData.jerseyNumber;
+
+            // Set data attributes
+            playerDiv.setAttribute('data-name', playerData.name);
+            playerDiv.setAttribute('data-jersey-number', playerData.jerseyNumber);
+            playerDiv.setAttribute('data-service-skill', playerData.serviceSkill);
+            playerDiv.setAttribute('data-setter-skill', playerData.setterSkill);
+            playerDiv.setAttribute('data-hitter-skill', playerData.hitterSkill);
+            playerDiv.setAttribute('data-passer-skill', playerData.passerSkill);
+            playerDiv.setAttribute('data-player-id', playerData.playerId);
+
+            // Make the playerDiv draggable
+            playerDiv.setAttribute('draggable', 'true');
+            playerDiv.addEventListener('dragstart', cellDragStart);
+
+            // Create tooltip content
+            var tooltipSpan = document.createElement('span');
+            tooltipSpan.className = 'tooltiptext';
+            tooltipSpan.innerHTML = generateTooltip(playerData);
+
+            // Append tooltip to playerDiv
+            playerDiv.appendChild(tooltipSpan);
+
+            // Clear the target cell and append the playerDiv
+            targetCell.innerHTML = '';
+            targetCell.appendChild(playerDiv);
+
+            // Update assignedPlayers
+            assignedPlayers[playerData.playerId] = targetCell.id;
+            updatePlayerRowStatus(playerData.playerId, true);
+        }
+
+        function generateTooltip(playerData) {
+            var initials = playerData.name.split(' ').map(function(word) {
+                return word[0];
+            }).join('');
+            var tooltipText = '<strong>' + initials + '</strong><br>';
+            tooltipText += 'Service Skill: ' + playerData.serviceSkill + '<br>';
+            tooltipText += 'Setter Skill: ' + playerData.setterSkill + '<br>';
+            tooltipText += 'Hitter Skill: ' + playerData.hitterSkill + '<br>';
+            tooltipText += 'Passer Skill: ' + playerData.passerSkill;
+            return tooltipText;
+        }
+
+        function cellKeyDown(event) {
+            if (event.key === 'Delete' || event.key === 'Backspace') {
+                var cell = event.target;
+                if (cell.innerHTML !== '') {
+                    var playerDiv = cell.querySelector('.player-jersey');
+                    var playerId = playerDiv.getAttribute('data-player-id');
+                    // Remove player from assignedPlayers
+                    delete assignedPlayers[playerId];
+                    updatePlayerRowStatus(playerId, false);
+                    // Clear the cell
+                    cell.innerHTML = '';
+                }
+            }
+        }
+
+        function updatePlayerRowStatus(playerId, isAssigned) {
+            var tableRows = document.getElementById('players-table').getElementsByTagName('tr');
+            for (var i = 0; i < tableRows.length; i++) {
+                var row = tableRows[i];
+                if (row.getAttribute('data-player-id') === playerId) {
+                    if (isAssigned) {
+                        row.classList.add('assigned');
+                    } else {
+                        row.classList.remove('assigned');
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Update player list to prevent dragging of assigned players from the list
+        document.getElementById('players-table').addEventListener('dragstart', function(event) {
+            var playerId = event.target.getAttribute('data-player-id');
+            if (assignedPlayers[playerId]) {
+                alert('This player is already assigned to a position.');
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
